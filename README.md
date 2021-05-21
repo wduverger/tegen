@@ -1,2 +1,2 @@
 # tegen
-Utility functions used by the Tegenfeldt group
+Shared python code used by the Tegenfeldt group
