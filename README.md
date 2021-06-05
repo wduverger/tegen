@@ -11,12 +11,13 @@ Example usage
 ```python
 import matplotlib.pyplot as plt
 import tegen
+import cv2
 
 # Read file
-images = tegen.bioformats.read_file(filepath)
+images = tegen.bioformats.read_file('<file_path>')
 
 # Use image data
-image = images['channel_name']
+image = images['<channel_name>']
 
 # Access image metadata
 image.meta
@@ -29,5 +30,19 @@ image.origin_y
 
 # False-colour a polarisation stack
 pol_rgb = tegen.polarisation.stack_to_rgb(image)
-plt.imshow(pol_rgb)
+
+# Show image in a plot with colourwheel and scalebar
+ax = plt.imshow(pol_rgb)
+tegen.polarisation.add_scalebar(ax, 10e-6/image.pixel_size, '10 μm')
+tegen.polarisation.add_colourwheel(ax)
+
+# Save image to file
+pol_rgb_save = tegen.polarisation.add_scalebar_in_place(
+    pol_rgb, 5, 2, 10e-6/image.pixel_size, '10 μm'
+)
+pol_rgb_save = tegen.polarisation.add_colourwheel_in_place(
+    pol_rgb_save, 5, 40
+)
+cv2.imwrite('<file_path>', im*255)  # cv2 expects a range between 0-255, not 0-1
+
 ```
