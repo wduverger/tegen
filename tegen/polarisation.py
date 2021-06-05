@@ -16,9 +16,12 @@ Usage:
 
 import cv2
 import matplotlib.colors
+import mpl_toolkits.axes_grid1.anchored_artists as mpl_aa
+import mpl_toolkits.axes_grid1.inset_locator as mpl_il
 import numpy as np
 import scipy.ndimage
 import scipy.signal
+from PIL import Image, ImageDraw, ImageFont
 
 
 def align_stack(original_image):
@@ -88,8 +91,9 @@ def gaussian_blur(stack, **kwargs):
         blurred[i] = scipy.ndimage.gaussian_filter(stack[i], **kwargs)
     return blurred
 
+
 def stack_to_rgb(stack, pol_axis=np.arange(0, 171, 10),
-               blur_sigma=0, saturation=1, brightness=1):
+                 blur_sigma=0, saturation=1, brightness=1):
     """
     Convert a stack of polarisation images into an RGB picture.
     """
@@ -117,3 +121,99 @@ def stack_to_rgb(stack, pol_axis=np.arange(0, 171, 10),
     image_hsv[..., 2] = (v/v.max())**brightness
 
     return matplotlib.colors.hsv_to_rgb(image_hsv)
+
+
+def add_scalebar(axis, len_in_pixels, label=None, position='upper right',
+                 color='white', frameon=False, pad=.3, size_vertical=2, **kwargs):
+    """ Add scalebar to a matplotlib plot with sensible defaults """
+
+    axis.add_artist(mpl_aa.AnchoredSizeBar(
+        axis.transData, len_in_pixels, label, position, color=color,
+        frameon=frameon, size_vertical=size_vertical, pad=pad,
+        **kwargs
+    ))
+
+
+def add_scalebar_in_place(im, pad, height, width, label=''):
+    """
+    Add scalebar to an image. Input: numpy array, outputs new array
+    """
+
+    Y, X, C = im.shape
+
+    # Draw scale bar
+    width = int(width)
+    im = im.copy()
+    im[pad:pad+height, -pad-width:-pad, :] = [1, 1, 1]
+
+    # Draw text
+    pil_img = Image.fromarray(np.uint8(im*255))
+    drawer = ImageDraw.Draw(pil_img)
+    drawer.text(
+        (Y-pad-width, pad+2*height),
+        label,
+        font=ImageFont.truetype(
+            font='./utils/SourceSansPro-Regular.ttf', size=19)
+    )
+    np_img = np.array(pil_img, dtype=float)/255
+
+    return np_img
+
+
+def add_colourwheel(axis, loc='upper left', size=.12, **wheel_kw):
+    """ 
+    Add a colourwheel to a plot. 
+    Use `wheel_kw` to choose alpha, saturation, etc of the wheel image
+    """
+
+    wheel_im = _generate_wheel(**wheel_kw)
+
+    inset = mpl_il.inset_axes(
+        axis, loc='upper left', width=size, height=size
+    )
+    inset.axis('off')
+    inset.imshow(wheel_im)
+
+
+def add_colourwheel_in_place(im, pad, resolution):
+    """ 
+    Add a colourwheel to an np.array
+    Use `wheel_kw` to choose alpha, saturation, etc of the wheel image
+    """
+    wheel_im = utils.generate_wheel(resolution=resolution)
+    Y, X, _ = wheel_im.shape
+    wheel_rgb = wheel_im[..., 0:3]
+    wheel_alpha = wheel_im[..., 3].astype(int).reshape(Y, X, 1)
+
+    im = im.copy()
+    im[pad:pad+Y, pad:pad+X] = wheel_alpha * wheel_rgb + \
+        (1-wheel_alpha) * im[pad:pad+Y, pad:pad+X]
+    return im
+
+
+def _generate_wheel(alpha=1, sat=1, val=.9, resolution=100):
+    x = np.linspace(-1, 1, resolution)
+    y = np.linspace(-1, 1, resolution)
+
+    xx, yy = np.meshgrid(x, y)
+    im_hsv = np.zeros((*xx.shape, 3))
+
+    rr = np.sqrt(xx**2 + yy**2)  # Distance from origin
+    tt = np.arctan2(yy, -xx)     # Angle of pixel vector to x axis
+
+    disc = rr < 1  # Image that is 0 if pixel outside unit circle, 1 otherwise
+
+    im_hsv[..., 0] = 1 - (disc*tt / np.pi + 1) % 1  # Hue
+    im_hsv[..., 1] = disc*rr * sat                # Saturation
+    im_hsv[..., 2] = disc * val                   # Brightness
+
+    # Convert to RGB
+    im_hsv = matplotlib.colors.hsv_to_rgb(im_hsv)
+    im_rgb = np.zeros((*xx.shape, 4))
+    im_rgb[..., 0:3] = im_hsv
+
+    # Add alpha channel
+    # alpha should be 0 outside the disk, otherwise the image will be black
+    im_rgb[..., 3] = disc * alpha
+
+    return im_rgb
