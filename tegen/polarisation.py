@@ -180,7 +180,7 @@ def add_colourwheel_in_place(im, pad, resolution):
     Add a colourwheel to an np.array
     Use `wheel_kw` to choose alpha, saturation, etc of the wheel image
     """
-    wheel_im = utils.generate_wheel(resolution=resolution)
+    wheel_im = _generate_wheel(resolution=resolution)
     Y, X, _ = wheel_im.shape
     wheel_rgb = wheel_im[..., 0:3]
     wheel_alpha = wheel_im[..., 3].astype(int).reshape(Y, X, 1)
