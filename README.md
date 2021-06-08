@@ -12,6 +12,7 @@ Example usage
 import matplotlib.pyplot as plt
 import tegen
 import cv2
+import numpy as np
 
 # Read file
 images = tegen.bioformats.read_file('<file_path>')
@@ -28,8 +29,10 @@ image.pixel_size
 image.origin_x
 image.origin_y
 
-# False-colour a polarisation stack
-pol_rgb = tegen.polarisation.stack_to_rgb(image)
+# False-colour a polarisation stack, supplying the angles at which the 
+# excitation light was polarised at every frame in the pol_axis variable
+pol_axis = np.arange(0, 170, 10)
+pol_rgb = tegen.polarisation.stack_to_rgb(image, pol_axis)
 
 # Show image in a plot with colourwheel and scalebar
 ax = plt.imshow(pol_rgb)

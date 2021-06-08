@@ -37,12 +37,16 @@ def align_stack(original_image):
 
     Z, Y, X = original_image.shape
     opencv_size = (X, Y)
-    warp_matrices = []
 
     for i in range(Z - 1):
+
+        # Get the previous, aligned image
         reference = corrected_image[i]
+
+        # Compare it to the next frame
         new_frame = original_image[i+1]
 
+        # Set up opencv options
         num_iterations = int(1e6)
         eps = 1e15
         criteria = (
@@ -50,18 +54,18 @@ def align_stack(original_image):
             eps
         )
 
+        # Calculate the matrix that would align the two images
         warp_matrix = np.eye(2, 3, dtype=np.float32)
         (_, warp_matrix) = cv2.findTransformECC(
             reference, new_frame, warp_matrix,
             cv2.MOTION_TRANSLATION, criteria,
         )
 
+        # Apply the transformation to the non-aligned image
         corrected_image[i+1] = cv2.warpAffine(
             new_frame, warp_matrix, opencv_size,
             flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP
         )
-
-        warp_matrices.append(warp_matrix)
 
     return corrected_image
 
