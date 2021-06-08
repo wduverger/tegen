@@ -46,6 +46,6 @@ pol_rgb_save = tegen.polarisation.add_scalebar_in_place(
 pol_rgb_save = tegen.polarisation.add_colourwheel_in_place(
     pol_rgb_save, 5, 40
 )
-cv2.imwrite('<file_path>', im*255)  # cv2 expects a range between 0-255, not 0-1
+cv2.imwrite('<file_path>', pol_rgb_save*255)  # cv2 expects a range between 0-255, not 0-1
 
 ```
